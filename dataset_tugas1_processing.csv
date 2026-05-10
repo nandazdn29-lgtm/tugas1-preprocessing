@@ -1,0 +1,201 @@
+# ============================================================
+# TUGAS 1 - DATA PREPROCESSING
+# Dataset: dataset_tugas1_preprocessing.csv
+# ============================================================
+
+import pandas as pd
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+import warnings
+warnings.filterwarnings('ignore')
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 1: LOAD DATASET
+# ─────────────────────────────────────────────────────────────
+print("=" * 60)
+print("TAHAP 1: LOAD DATASET")
+print("=" * 60)
+
+df = pd.read_csv('dataset_tugas1_preprocessing.csv')
+
+print(f"✓ Dataset berhasil dimuat")
+print(f"  Jumlah baris  : {df.shape[0]}")
+print(f"  Jumlah kolom  : {df.shape[1]}")
+print("\n5 baris pertama:")
+print(df.head())
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 2: EKSPLORASI AWAL (EDA)
+# ─────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("TAHAP 2: EKSPLORASI AWAL (EDA)")
+print("=" * 60)
+
+# 2.1 Struktur & tipe data
+print("\n[2.1] Struktur & Tipe Data:")
+print(df.dtypes)
+
+# 2.2 Missing values
+print("\n[2.2] Jumlah Nilai Hilang per Kolom:")
+missing     = df.isnull().sum()
+missing_pct = (missing / len(df) * 100).round(2)
+missing_df  = pd.DataFrame({
+    'Jumlah NaN'     : missing,
+    'Persentase (%)' : missing_pct
+})
+print(missing_df)
+
+# 2.3 Statistik deskriptif
+print("\n[2.3] Statistik Deskriptif:")
+print(df.describe(include='all'))
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 3: MENANGANI MISSING VALUES
+# ─────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("TAHAP 3: MENANGANI MISSING VALUES")
+print("=" * 60)
+
+# Imputasi Umur → median (kolom numerik, lebih robust terhadap outlier)
+median_umur = df['Umur'].median()
+df.loc[df['Umur'].isnull(), 'Umur'] = median_umur
+print(f"[3.1] Kolom 'Umur'       → diimputasi dengan median = {median_umur}")
+
+# Imputasi Nilai_Akhir → modus (kolom kategorikal ordinal)
+modus_nilai = df['Nilai_Akhir'].mode()[0]
+df.loc[df['Nilai_Akhir'].isnull(), 'Nilai_Akhir'] = modus_nilai
+print(f"[3.2] Kolom 'Nilai_Akhir' → diimputasi dengan modus = '{modus_nilai}'")
+
+print(f"\nMissing values setelah imputasi:\n{df.isnull().sum()}")
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 4: NORMALISASI FORMAT TANGGAL
+# ─────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("TAHAP 4: NORMALISASI FORMAT TANGGAL")
+print("=" * 60)
+
+print("Contoh format sebelum normalisasi:")
+print(df['Tanggal_Ujian'].head(8).tolist())
+
+# format='mixed' agar pandas mengenali tiap format secara individual
+df['Tanggal_Ujian'] = pd.to_datetime(
+    df['Tanggal_Ujian'], format='mixed', dayfirst=True
+)
+
+print(f"\nTipe data setelah konversi : {df['Tanggal_Ujian'].dtype}")
+print("Contoh setelah normalisasi :")
+print(df['Tanggal_Ujian'].head(8).tolist())
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 5: ENCODING LABEL
+# ─────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("TAHAP 5: ENCODING LABEL")
+print("=" * 60)
+
+kolom_encode = ['Nama', 'Jenis_Kelamin', 'Prodi', 'Status', 'Nilai_Akhir']
+le_dict = {}
+
+for col in kolom_encode:
+    le = LabelEncoder()
+    df[col] = le.fit_transform(df[col].astype(str))
+    le_dict[col] = le
+    print(f"  [{col:<15}] Kelas : {list(le.classes_)}")
+    print(f"  {'':<17} Encoded: {list(range(len(le.classes_)))}")
+
+print("\nDataset setelah Label Encoding (5 baris pertama):")
+print(df.head())
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 6: SPLIT DATA
+# ─────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("TAHAP 6: SPLIT DATA (80% Train / 20% Test)")
+print("=" * 60)
+
+# Fitur: semua kolom kecuali ID, Status (target), dan Tanggal_Ujian
+X = df.drop(columns=['ID', 'Status', 'Tanggal_Ujian'])
+y = df['Status']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print(f"  Jumlah data total  : {len(df)}")
+print(f"  Data latih (X_train): {X_train.shape}")
+print(f"  Data uji   (X_test) : {X_test.shape}")
+print(f"  Label latih         : {y_train.shape}")
+print(f"  Label uji           : {y_test.shape}")
+
+print("\nKolom fitur yang digunakan:")
+print(list(X.columns))
+
+
+# ─────────────────────────────────────────────────────────────
+# TAHAP 7: VISUALISASI
+# ─────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("TAHAP 7: VISUALISASI")
+print("=" * 60)
+
+# Buat ulang df asli untuk visualisasi yang lebih informatif
+df_viz = pd.read_csv('dataset_tugas1_preprocessing.csv')
+df_viz.loc[df_viz['Umur'].isnull(), 'Umur'] = df_viz['Umur'].median()
+
+fig = plt.figure(figsize=(14, 6))
+fig.suptitle('Visualisasi Dataset Mahasiswa', fontsize=16, fontweight='bold')
+gs  = gridspec.GridSpec(1, 2, figure=fig)
+
+# — Plot 1: Histogram Umur —
+ax1 = fig.add_subplot(gs[0])
+ax1.hist(df_viz['Umur'], bins=12, color='steelblue', edgecolor='white', linewidth=0.8)
+ax1.axvline(df_viz['Umur'].mean(),   color='tomato', linestyle='--',
+            linewidth=1.8, label=f"Mean: {df_viz['Umur'].mean():.1f}")
+ax1.axvline(df_viz['Umur'].median(), color='gold',   linestyle='--',
+            linewidth=1.8, label=f"Median: {df_viz['Umur'].median():.1f}")
+ax1.set_title('Distribusi Umur Mahasiswa', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Umur', fontsize=11)
+ax1.set_ylabel('Frekuensi', fontsize=11)
+ax1.legend(fontsize=10)
+ax1.grid(axis='y', alpha=0.4)
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+
+# — Plot 2: Bar Chart Jumlah Mahasiswa per Prodi —
+ax2          = fig.add_subplot(gs[1])
+prodi_count  = df_viz['Prodi'].value_counts().sort_values(ascending=False)
+bar_colors   = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0']
+bars         = ax2.bar(prodi_count.index, prodi_count.values,
+                       color=bar_colors, edgecolor='white', linewidth=0.8)
+for bar, val in zip(bars, prodi_count.values):
+    ax2.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+             str(val), ha='center', va='bottom', fontsize=11, fontweight='bold')
+ax2.set_title('Jumlah Mahasiswa per Program Studi', fontsize=13, fontweight='bold')
+ax2.set_xlabel('Program Studi', fontsize=11)
+ax2.set_ylabel('Jumlah Mahasiswa', fontsize=11)
+ax2.tick_params(axis='x', rotation=15)
+ax2.grid(axis='y', alpha=0.4)
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+ax2.set_ylim(0, prodi_count.max() + 5)
+
+plt.tight_layout()
+plt.savefig('visualisasi_mahasiswa.png', dpi=150, bbox_inches='tight')
+plt.close()
+print("✓ Histogram Umur & Bar Chart Prodi disimpan ke 'visualisasi_mahasiswa.png'")
+
+print("\n" + "=" * 60)
+print("✓ SEMUA TAHAP PREPROCESSING SELESAI!")
+print("=" * 60)
